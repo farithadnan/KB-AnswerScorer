@@ -49,11 +49,8 @@ def main():
         response = client.chat_with_model(prompt)
 
         if response:
-            try:
-                formatted_response = json.dumps(response, indent=4, ensure_ascii=False)
-                print("Model Response:\n", formatted_response)
-            except (TypeError, ValueError):
-                print("Model Response (unformatted): ", response)
+            content = response.choices[0].message.content
+            print("Model said: ", content)
         else:
             print("No Model Received")        
 
