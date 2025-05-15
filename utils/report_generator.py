@@ -76,8 +76,9 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
             f.write(f"  BLEU:      {metrics['bleu']:.4f}\n\n")
 
             # Quality assessment
-            quality_assessment = assess_response_quality(metrics)
+            is_acceptable, message = assess_response_quality(metrics)
             f.write(f"### Quality Assessment\n")
-            f.write(f"  {quality_assessment}\n\n")
+            f.write(f"  Status: {'Acceptable' if is_acceptable else 'Needs Improvement'}\n")
+            f.write(f"  {message}\n\n")
 
     return filepath
