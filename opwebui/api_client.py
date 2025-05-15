@@ -1,8 +1,8 @@
 import os
+import logging
 import requests
 
 from dotenv import load_dotenv
-
 from opwebui.models.chat_response import ChatResponse
 
 load_dotenv()
@@ -36,14 +36,21 @@ class OpenWebUIClient:
         """
         payload = {
             "model": self.model_name,
+            "stream": False,
             "messages": [{"role": self.role, "content": prompt}],
+            "files": [
+                {"type": "collection", "id": "f13c24b7-a2b1-412d-8029-9b7342ef1aab"}
+            ]
         }
         
         try:
             response = requests.post(self.api_url, headers=self.headers, json=payload)
             response.raise_for_status()
             raw_data = response.json()
+
+            logging.debug(f"\nResponse From API {ChatResponse.from_dict(raw_data)}\n")
             return ChatResponse.from_dict(raw_data)
+        
         except requests.exceptions.HTTPError as e:
             self.logger.error(f"HTTP error: {e}")
         except requests.exceptions.ConnectionError as e:
