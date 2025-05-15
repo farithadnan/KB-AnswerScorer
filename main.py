@@ -1,15 +1,19 @@
 
 import os
-import json
 import time
-import torch
 import logging
+import traceback
 
+
+from datetime import datetime
 from dotenv import load_dotenv
-from bert_score import BERTScorer
-from transformers import BertTokenizer, BertModel
+
 from utils.data_extractor import DataExtractor
 from opwebui.api_client import OpenWebUIClient
+from utils.report_generator import generate_report
+from metrics.score_calculator import ScoreCalculator
+from metrics.solution_matcher import SolutionMatcher
+from utils.quality_filter import assess_response_quality, get_improved_prompt
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,12 +23,55 @@ QUESTION_PATH = os.path.join(DATA_PATH, os.getenv("QUESTION_EXCEL"))
 SOLUTION_PATH = os.path.join(DATA_PATH, os.getenv("SOLUTION_EXCEL"))
 QUESTION_SHEET_NAME = os.getenv("QUESTION_SHEET_NAME")
 
-if not DATA_PATH or not QUESTION_PATH or not SOLUTION_PATH or not QUESTION_SHEET_NAME:
-    raise ValueError("DATA_DIR_PATH, QUESTION_EXCEL, SOLUTION_EXCEL, and QUESTION_SHEET_NAME must be set in the environment variables.")
+if not DATA_PATH or not QUESTION_PATH or not SOLUTION_PATH:
+    raise ValueError("DATA_DIR_PATH, QUESTION_EXCEL, SOLUTION_EXCEL must be set in the environment variables.")
+
+
+def display_results(question, model_response, best_solution, metrics):
+    """
+    Display formatted results of model response evaluation.
+    
+    Args:
+        question: The Question object
+        model_response: The model's generated response text
+        best_solution: The best matching Solution object
+        metrics: Dictionary of evaluation metrics
+    """
+    # Log the best match
+    logging.info(f"Best match for question {question.id} with F1={metrics['bert_f1']:.4f}")
+    
+    # Print formatted output
+    print(f"\n{'='*50}")
+    print(f"=== Question {question.id} ===")
+    print(f"Issue: {question.issue[:100]}..." if len(question.issue) > 100 else f"Issue: {question.issue}")
+    
+    print(f"\n=== Model Response ===")
+    response_preview = model_response[:300] + "..." if len(model_response) > 300 else model_response
+    print(response_preview)
+    
+    print(f"\n=== Best Matching Solution ({best_solution.id}) ===")
+    print(f"Title: {best_solution.title}")
+    
+    # Print up to 5 steps
+    for j, step in enumerate(best_solution.steps[:5]):
+        print(f"  {j+1}. {step}")
+    
+    # Show ellipsis if there are more steps
+    if len(best_solution.steps) > 5:
+        print(f"  ...(+{len(best_solution.steps) - 5} more steps)")
+    
+    # Print metrics
+    print(f"\nEvaluation Metrics:")
+    print(f"  BERTScore: {metrics['bert_f1']:.4f} (P={metrics['bert_precision']:.4f}, R={metrics['bert_recall']:.4f})")
+    print(f"  F1 Score:  {metrics['trad_f1']:.4f}")
+    print(f"  BLEU:      {metrics['bleu']:.4f}")
+    
+    print(f"\n{'='*50}\n")
+
 
 def main():
     try:
-        # Ensure data directory exists
+        # Ensure data directory exists, create if not
         os.makedirs(DATA_PATH, exist_ok=True)
         
         if not os.path.exists(QUESTION_PATH) or not os.path.exists(SOLUTION_PATH):
@@ -45,14 +92,16 @@ def main():
         questions = extractor.get_questions()
         solutions = extractor.get_solutions()
         
-        # Initialize BERTScorer (only once for efficiency)
-        logging.info("Initializing BERTScorer...")
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        scorer = BERTScorer(model_type="bert-base-uncased", device=device)
-        logging.info(f"Using device: {device} for BERTScore calculations")
+        # Initialize the score calculator and matcher
+        score_calculator = ScoreCalculator()
+        matcher = SolutionMatcher(score_calculator)
 
-        for i, question in enumerate(questions[:5]):
-            logging.info(f"Processing question {i+1}/{len(questions[:5])}")
+        # Prepare metrics storage for report generation
+        metrics_by_question = {}
+
+        # NEED TO REMOVE LIMITER [:1] IF WANT TO PROCESS ALL QUESTIONS
+        for i, question in enumerate(questions[:1]):
+            logging.info(f"Processing question {i+1}/{len(questions[:1])}")
             
             # Get model response for this question
             client = OpenWebUIClient()
@@ -77,58 +126,45 @@ def main():
                 solution_indices = question.solutions_used
                 logging.info(f"Using solutions {solution_indices} for question {question.id}")
             
-             # Calculate BERTScore for each potential solution
-            best_score = -1
-            best_solution_idx = -1
+            solutions_to_compare = [solutions[i] for i in solution_indices]
+
+            best_solution, metrics = matcher.find_best_solution(
+                model_response, 
+                solutions_to_compare
+            )
+
+            question.bert_score = metrics['bert_f1']
+            question.f1_score = metrics['trad_f1']
+            question.bleu_score = metrics['bleu']
+
+            # Store metrics for report generation
+            metrics_by_question[question.id] = {
+                'metrics': metrics,
+                'best_solution_id': best_solution.id,
+                'model_response': model_response
+            }
+
+            # Check quality and potentially improve prompt
+            is_acceptable, feedback = assess_response_quality(metrics)
+            if not is_acceptable:
+                logging.warning(f"Question {question.id} response quality below threshold")
+                logging.info(feedback)
+                
+                # Generate improved prompt for future use
+                improved_prompt = get_improved_prompt(question.issue, metrics)
+                logging.info(f"Improved prompt: {improved_prompt[:100]}...")
             
-            for sol_idx in solution_indices:
-                if sol_idx >= len(solutions):
-                    logging.warning(f"Solution index {sol_idx} out of range, skipping")
-                    continue
-                    
-                solution = solutions[sol_idx]
-                solution_text = " ".join(solution.steps)  # Join all solution steps
-                
-                # Calculate BERTScore
-                P, R, F1 = scorer.score([model_response], [solution_text])
-                
-                # Get the scores as float values
-                precision = P.item()
-                recall = R.item()
-                f1 = F1.item()
-                
-                logging.info(f"Solution {sol_idx} - BERTScore: P={precision:.4f}, R={recall:.4f}, F1={f1:.4f}")
-                
-                # Update the best score if this one is better
-                if f1 > best_score:
-                    best_score = f1
-                    best_solution_idx = sol_idx
-            
-            # Update the question with the best BERTScore
-            if best_solution_idx >= 0:
-                question.bert_score = best_score
-                logging.info(f"Best match: Solution {best_solution_idx} with F1={best_score:.4f}")
-                
-                # Print the match
-                print(f"\n=== Question {question.id} ===")
-                print(f"Issue: {question.issue[:100]}...")
-                print(f"\n=== Model Response ===")
-                print(f"{model_response[:200]}...")
-                print(f"\n=== Best Matching Solution ({best_solution_idx}) ===")
-                print(f"{solutions[best_solution_idx].title}")
-                for j, step in enumerate(solutions[best_solution_idx].steps[:5]):
-                    print(f"  {j+1}. {step}")
-                print(f"...(more steps)") if len(solutions[best_solution_idx].steps) > 5 else None
-                print(f"\nBERTScore: {best_score:.4f}")
-                print("\n" + "="*50 + "\n")
+            # display_results(question, model_response, best_solution, metrics)
             
             time.sleep(1)
+    
+        # Generate comprehensive report after all questions processed
+        if metrics_by_question:
+            report_path = generate_report(questions, solutions, metrics_by_question)
+            logging.info(f"Evaluation report generated: {report_path}")
             
-
-
     except Exception as e:
         logging.error(f"An error occurred: {e}")
-        import traceback
         traceback.print_exc()
         return
 
