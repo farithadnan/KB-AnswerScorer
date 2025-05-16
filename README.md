@@ -111,6 +111,8 @@ The tool expects two Excel files:
         - `steps`: Each line after the title becomes a step in the solution
         - `error_message`: Any text in column B becomes the error message
 
+You can check `data/samples` to see the sample of these two files.
+
 ## Usage
 
 Run the script with various command-line options to control its behavior:
