@@ -1,9 +1,13 @@
 
+from ast import arg
 import os
+import re
 import time
 import logging
+import argparse
 import traceback
 
+from tqdm import tqdm
 from dotenv import load_dotenv
 
 from utils.data_extractor import DataExtractor
@@ -69,6 +73,13 @@ def display_results(question, model_response, best_solution, metrics):
 
 def main():
     try:
+        # Parse command line arguments
+        args = parse_args()
+
+        if args.verbose:
+            logging.getLogger().setLevel(logging.DEBUG)
+            logging.debug("Verbose mode enabled")
+
         # Ensure data directory exists, create if not
         os.makedirs(DATA_PATH, exist_ok=True)
         
@@ -97,9 +108,19 @@ def main():
         # Prepare metrics storage for report generation
         metrics_by_question = {}
 
-        # NEED TO REMOVE LIMITER [:1] IF WANT TO PROCESS ALL QUESTIONS
-        for i, question in enumerate(questions[:1]):
-            logging.info(f"Processing question {i+1}/{len(questions[:1])}")
+        # Use the limit argument if provided
+        if args.question_id:
+            question_to_process = [q for q in questions if q.id == args.question_id]
+            if not question_to_process:
+                logging.error(f"Question ID {args.question_id} not found.")
+                return
+        else:
+            question_to_process = questions if args.limit <= 0 else questions[:args.limit]
+
+        total_questions = len(question_to_process)
+
+        for i, question in enumerate(tqdm(question_to_process, desc="\nProcessing questions", unit="question")):
+            logging.info(f"Processing question {i+1}/{total_questions} (ID: {question.id})")
             
             # Get model response for this question
             client = OpenWebUIClient()
@@ -152,19 +173,37 @@ def main():
                 improved_prompt = get_improved_prompt(question.issue, metrics)
                 logging.info(f"Improved prompt: {improved_prompt[:100]}...")
             
-            # display_results(question, model_response, best_solution, metrics)
+            if args.verbose:
+                display_results(question, model_response, best_solution, metrics)
             
-            time.sleep(1)
+            time.sleep(args.wait_time)
     
         # Generate comprehensive report after all questions processed
-        if metrics_by_question:
-            report_path = generate_report(questions, solutions, metrics_by_question)
+        if metrics_by_question and not args.skip_report:
+            report_path = generate_report(questions, solutions, metrics_by_question,
+                                          output_dir=args.report_dir)
             logging.info(f"Evaluation report generated: {report_path}")
             
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         traceback.print_exc()
         return
+        
+
+def parse_args():
+    """
+    Parse command line arguments.
+    Returns:
+        Namespace: Parsed arguments
+    """
+    parser = argparse.ArgumentParser(description="Knowledge Base Answer Scorer")
+    parser.add_argument("--limit", type=int, default=0, help="Limit the number of questions to process")
+    parser.add_argument("--question-id", type=str, help="Process only a specific question ID")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Display detailed logs")
+    parser.add_argument("--report-dir", type=str, default="reports", help="Directory to save reports")
+    parser.add_argument("--wait-time", type=float, default=1.0, help="Wait time between API calls in seconds")
+    parser.add_argument("--skip-report", action="store_true", help="Skip report generation")
+    return parser.parse_args()
 
 if __name__ == "__main__":
     main()
