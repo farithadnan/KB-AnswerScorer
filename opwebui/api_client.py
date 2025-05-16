@@ -9,6 +9,7 @@ load_dotenv()
 API_URL = os.getenv("API_URL")
 API_KEY = os.getenv("API_KEY")
 OP_MODEL = os.getenv("OP_MODEL")
+COLLECTION_ID = os.getenv("COLLECTION_ID")
 
 if not API_URL or not API_KEY or not OP_MODEL:
     raise ValueError("API_URL, API_KEY, and OP_MODEL must be set in the environment variables.")
@@ -39,7 +40,7 @@ class OpenWebUIClient:
             "stream": False,
             "messages": [{"role": self.role, "content": prompt}],
             "files": [
-                {"type": "collection", "id": "f13c24b7-a2b1-412d-8029-9b7342ef1aab"}
+                {"type": "collection", "id": COLLECTION_ID}
             ]
         }
         
