@@ -73,14 +73,32 @@ def get_improved_prompt(original_prompt, metrics,
     if is_acceptable:
         return original_prompt
     
-     # Create an enhanced prompt
+    # Extract specific issues from feedback
+    bert_failed = metrics['bert_f1'] < bert_threshold
+    f1_failed = metrics['trad_f1'] < f1_threshold
+    bleu_failed = metrics['bleu'] < bleu_threshold
+    
+    # Create an enhanced prompt
     enhanced_prompt = (
         f"I need more detailed information about this issue. "
         f"My previous question was:\n\n{original_prompt}\n\n"
+        f"The previous response had these quality issues:\n{feedback}\n\n"
         f"Please provide a comprehensive answer with:\n"
-        f"- Step-by-step instructions\n"
-        f"- Relevant technical details\n"
-        f"- Any specific commands or settings needed\n"
-        f"- Common pitfalls to avoid"
+    )
+    
+    # Add specific instructions based on which metrics failed
+    if bert_failed:
+        enhanced_prompt += "- Better semantic relevance to my specific question\n"
+    if f1_failed:
+        enhanced_prompt += "- More key technical terms and specific terminology\n"
+    if bleu_failed:
+        enhanced_prompt += "- Clearer structure similar to standard solutions\n"
+    
+    # Add general improvements
+    enhanced_prompt += (
+        "- Step-by-step instructions\n"
+        "- Relevant technical details\n"
+        "- Any specific commands or settings needed\n"
+        "- Common pitfalls to avoid"
     )
     return enhanced_prompt

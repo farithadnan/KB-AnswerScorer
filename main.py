@@ -164,13 +164,24 @@ def main():
             }
 
             # Check quality and potentially improve prompt
-            is_acceptable, feedback = assess_response_quality(metrics)
+            is_acceptable, feedback = assess_response_quality(
+                metrics,
+                bert_threshold=args.bert_threshold,
+                f1_threshold=args.f1_threshold,
+                bleu_threshold=args.bleu_threshold
+            )
             if not is_acceptable:
                 logging.warning(f"Question {question.id} response quality below threshold")
                 logging.info(feedback)
                 
                 # Generate improved prompt for future use
-                improved_prompt = get_improved_prompt(question.issue, metrics)
+                improved_prompt = get_improved_prompt(
+                    question.issue, 
+                    metrics, 
+                    bert_threshold=args.bert_threshold,
+                    f1_threshold=args.f1_threshold,
+                    bleu_threshold=args.bleu_threshold
+                )
                 logging.info(f"Improved prompt: {improved_prompt[:100]}...")
             
             if args.verbose:
@@ -181,7 +192,10 @@ def main():
         # Generate comprehensive report after all questions processed
         if metrics_by_question and not args.skip_report:
             report_path = generate_report(questions, solutions, metrics_by_question,
-                                          output_dir=args.report_dir)
+                                          output_dir=args.report_dir,
+                                          bert_threshold=args.bert_threshold,
+                                          f1_threshold=args.f1_threshold,
+                                          bleu_threshold=args.bleu_threshold)
             logging.info(f"Evaluation report generated: {report_path}")
             
     except Exception as e:
@@ -197,6 +211,9 @@ def parse_args():
         Namespace: Parsed arguments
     """
     parser = argparse.ArgumentParser(description="Knowledge Base Answer Scorer")
+    parser.add_argument("--bert-threshold", "--bt", type=float, default=0.5, help="BERT score threshold for quality assessment")
+    parser.add_argument("--f1-threshold", "--f1", type=float, default=0.3, help="F1 score threshold for quality assessment")
+    parser.add_argument("--bleu-threshold", "--bl", type=float, default=0.1, help="BLEU score threshold for quality assessment")
     parser.add_argument("--limit", type=int, default=0, help="Limit the number of questions to process")
     parser.add_argument("--question-id", type=str, help="Process only a specific question ID")
     parser.add_argument("--verbose", "-v", action="store_true", help="Display detailed logs")

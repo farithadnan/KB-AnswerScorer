@@ -3,7 +3,10 @@ import os
 from datetime import datetime
 from utils.quality_filter import assess_response_quality
 
-def generate_report(questions, solutions, metrics_by_question, output_dir="output"):
+def generate_report(questions, solutions, metrics_by_question, output_dir="output",  
+                    bert_threshold=0.5, 
+                    f1_threshold=0.3, 
+                    bleu_threshold=0.1):
     """
     Generate a detailed text report of evaluation results.
     
@@ -12,6 +15,9 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
         solutions: List of Solution objects
         metrics_by_question: Dictionary mapping question ID to metrics and best solution ID
         output_dir: Directory to save the report
+        bert_threshold: Minimum acceptable BERTScore
+        f1_threshold: Minimum acceptable traditional F1 score
+        bleu_threshold: Minimum acceptable BLEU score
     
     Returns:
         str: Path to the generated report file
@@ -76,7 +82,12 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
             f.write(f"  BLEU:      {metrics['bleu']:.4f}\n\n")
 
             # Quality assessment
-            is_acceptable, message = assess_response_quality(metrics)
+            is_acceptable, message = assess_response_quality(
+                metrics,
+                bert_threshold=bert_threshold,
+                f1_threshold=f1_threshold,
+                bleu_threshold=bleu_threshold
+            )
             f.write(f"### Quality Assessment\n")
             f.write(f"  Status: {'Acceptable' if is_acceptable else 'Needs Improvement'}\n")
             f.write(f"  {message}\n\n")
