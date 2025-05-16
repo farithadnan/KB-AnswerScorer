@@ -1,5 +1,7 @@
 .conda
 data/*
+!data/samples/
+!data/samples/**
 output/*
 reports/*
 __pycache__/
