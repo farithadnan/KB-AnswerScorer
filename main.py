@@ -4,8 +4,6 @@ import time
 import logging
 import traceback
 
-
-from datetime import datetime
 from dotenv import load_dotenv
 
 from utils.data_extractor import DataExtractor
