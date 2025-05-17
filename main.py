@@ -23,7 +23,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 DATA_PATH = os.path.abspath(os.getenv("DATA_DIR_PATH"))
 QUESTION_PATH = os.path.join(DATA_PATH, os.getenv("QUESTION_EXCEL"))
 SOLUTION_PATH = os.path.join(DATA_PATH, os.getenv("SOLUTION_EXCEL"))
+
 QUESTION_SHEET_NAME = os.getenv("QUESTION_SHEET_NAME")
+
 
 if not DATA_PATH or not QUESTION_PATH or not SOLUTION_PATH:
     raise ValueError("DATA_DIR_PATH, QUESTION_EXCEL, SOLUTION_EXCEL must be set in the environment variables.")
@@ -91,7 +93,18 @@ def main():
         extractor = DataExtractor(
             questions_path=QUESTION_PATH,
             answers_path=SOLUTION_PATH,
-            questions_sheet_name=QUESTION_SHEET_NAME
+            questions_config={
+                "sheet_name": QUESTION_SHEET_NAME,
+                "header_row": 2,
+                "issue_col": 'B',
+                'solutions_col': 'C',
+                'ai_solutions_col': 'D'
+            },
+            answers_config={
+                "header_row": 0,
+                "title_col": 'A',
+                'steps_col': 'B'
+            }
         )
         
         # Load and parse the data
@@ -135,17 +148,28 @@ def main():
             model_response = response.choices[0].message.content
             logging.info(f"Received model response: {len(model_response)} chars")
 
-             # Find the associated solution(s) based on solutions_used field
-            if not question.solutions_used:
-                # If no solutions are marked, compare with all solutions
-                solution_indices = list(range(len(solutions)))
-                logging.info(f"No specific solution marked for question {question.id}, comparing with all solutions")
-            else:
-                # Use the specific solutions marked for this question
+            # Find the associated solution(s) based on solutions_used or ai_solutions_used field
+            if len(question.ai_solutions_used) > 0:
+                # Prefer AI solutions if specified
+                solution_indices = question.ai_solutions_used
+                logging.info(f"Using AI solutions {solution_indices} for question {question.id}")
+            elif len(question.solutions_used) > 0:
+                # Fall back to regular solutions
                 solution_indices = question.solutions_used
-                logging.info(f"Using solutions {solution_indices} for question {question.id}")
-            
-            solutions_to_compare = [solutions[i] for i in solution_indices]
+                logging.info(f"Using regular solutions {solution_indices} for question {question.id}")
+            else:
+                # If no solutions are marked, compare with all solutions
+                solution_indices = list(range(1, len(solutions) + 1))  # Use 1-based indices to match Excel
+                logging.info(f"No specific solution marked for question {question.id}, comparing with all solutions")
+
+            # Filter out invalid indices (ensure they're 0-based for array indexing)
+            valid_indices = [i-1 for i in solution_indices if 1 <= i <= len(solutions)]  
+            solutions_to_compare = [solutions[i] for i in valid_indices]
+
+            # Skip if no valid solutions to compare against
+            if not solutions_to_compare:
+                logging.warning(f"No valid solutions found for question {question.id}")
+                continue
 
             best_solution, metrics = matcher.find_best_solution(
                 model_response, 
