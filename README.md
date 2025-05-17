@@ -93,13 +93,16 @@ The tool expects two Excel files:
 
 1. **Question file**: Contains customer queries/issues.
     - **Required structure:**
-        - Excel file with customer questions (header starts at row 4)
+        - Excel file with customer questions (header starts at row 3)
         - Main question text in column B
+        - Solutions used in column C (optional)
+        - AI Solutions used in column D (optional)
         - Each row represents a unique customer issue
     - **Parsed into:**
         - `id`: Automatically assigned based on row number (starting from 1)
         - `issue`: The customer question text from column B
         - `solutions_used`: List of solution indices that can be manually set later
+        - `ai_solutions_used`: List of AI solution indices from column D
 2. **Solutions file**: Contains expert solutions.
     - **Required structure:**
         - Excel file with solutions (header in row 1)
@@ -188,6 +191,22 @@ python main.py --wait-time 2.0
 - The model may not be suitable for your domain
 - Consider adjusting the quality thresholds
 - Review your reference solutions for clarity
+
+### Environment Variable Issues
+
+If you update your `.env` file and changes aren't detected:
+
+- Make sure to use `#` for comments
+- Restart your terminal/command prompt
+
+
+### Excel Format Issues
+
+If you're getting parsing errors:
+
+- Check that the header row is set correctly (defaults to row 3)
+- Verify column mappings in the DataExtractor configuration
+- For solutions, ensure they follow the "Solution X" format with numbered steps
 
 ## License
 
