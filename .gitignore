@@ -6,3 +6,4 @@ output/*
 reports/*
 __pycache__/
 .env
+venv

@@ -3,6 +3,8 @@ import nltk
 import torch
 import logging
 
+nltk.download('punkt_tab', quiet=True)
+
 from bert_score import BERTScorer
 from nltk.tokenize import word_tokenize
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction

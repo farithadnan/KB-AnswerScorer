@@ -8,6 +8,7 @@ cycler==0.12.1
 et_xmlfile==2.0.0
 filelock==3.18.0
 fonttools==4.57.0
+hf-xet==1.1.2
 fsspec==2025.3.2
 huggingface-hub==0.31.1
 idna==3.10
