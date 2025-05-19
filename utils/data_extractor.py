@@ -185,6 +185,13 @@ class DataExtractor:
                 if self.questions_config['ai_solutions_col']:
                     ai_solutions_value = self._get_column_value(row, self.questions_config['ai_solutions_col'])
                     question.ai_solutions_used = self._parse_solutions_idx(ai_solutions_value)
+                    # Check if the value is 0 or empty
+                    if (isinstance(ai_solutions_value, (int, float)) and ai_solutions_value == 0) or pd.isna(ai_solutions_value):
+                        # If AI solution is 0, use all solutions for comparison
+                        logging.debug(f"Question {i+1}: AI solution value is {ai_solutions_value}, using all solutions")
+                        question.ai_solutions_used = list(range(1, len(self.solutions) + 1)) if hasattr(self, 'solutions') else []
+                    else:
+                        question.ai_solutions_used = self._parse_solutions_idx(ai_solutions_value)
                 
                 self.questions.append(question)
                 
@@ -222,9 +229,9 @@ class DataExtractor:
             
             # Special case: Handle text like "self resolved" or other non-numeric strings
             if not re.search(r'\d+', value):
-                # For special strings, return empty list
-                logging.debug(f"Special solution string detected: '{value}'. Using empty list.")
-                return []
+                # For special strings, return all list
+                logging.debug(f"Special solution string detected: '{value}'. Using all available solutions for comparison.")
+                return list(range(1, len(self.solutions) + 1)) if hasattr(self, 'solutions') else []            
             
             # Normal case: Extract numbers from the string
             try:
