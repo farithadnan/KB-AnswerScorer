@@ -43,7 +43,7 @@ docker-compose build
 To run the container:
 
 ```bash
-docker-compose up
+docker-compose run --rm kb-scorer
 ```
 
 If you make changes to the code, simply run `update-docker.ps1` PowerShell Script to update your container:
@@ -196,7 +196,7 @@ python main.py --wait-time 2.0
 For Docker, it's the same as the previous example — you just need to add this in front of the command:
 
 ```bash
-docker-compose run kb-scorer python main.py --limit 1
+docker-compose run --rm kb-scorer python main.py --limit 1
 ```
 
 ## Troubleshooting
