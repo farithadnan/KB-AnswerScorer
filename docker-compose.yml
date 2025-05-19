@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  kb-scorer:
+    build: . # Use the Dockerfile in the current directory
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    env_file:
+      - .env
+    command: python main.py

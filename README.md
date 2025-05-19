@@ -12,7 +12,47 @@ The comparison is based on:
 - F1 Score (lexical similarity)
 - BLEU Score (translation quality metric)
 
-## Installation
+## Project Structure
+
+```yaml
+KB-AnswerScorer/
+├── main.py                  # Main script
+├── .env                     # Environment variables
+├── data/                    # Input data directory
+│   ├── questions.xlsx       # Customer questions
+│   └── solutions.xlsx       # Expert solutions
+├── metrics/                 # Scoring modules
+│   ├── score_calculator.py  # Implements scoring metrics
+│   └── solution_matcher.py  # Matches responses to solutions
+├── opwebui/                 # OpenWebUI integration
+│   └── api_client.py        # Client for OpenWebUI API
+└── utils/                   # Utility modules
+    ├── data_extractor.py    # Parses Excel input files
+    ├── quality_filter.py    # Assesses response quality
+    └── report_generator.py  # Generates evaluation reports
+```
+
+## Installation (With Docker)
+
+To build and run the container for the first time, you need to make sure you've already **configure** the `.env` and the **input** Excel files, refer to the **Configuration** section for more details:
+
+```bash
+docker-compose build
+```
+
+To run the container:
+
+```bash
+docker-compose up
+```
+
+If you make changes to the code, simply run `update-docker.ps1` PowerShell Script to update your container:
+
+```bash
+.\update-docker.ps1
+```
+
+## Installation (Without Docker)
 
 Clone this repository:
 
@@ -38,26 +78,6 @@ path\to\venv\Scripts\activate
 
 # bash
 source path/to/venv/bin/activate
-```
-
-## Project Structure
-
-```yaml
-KB-AnswerScorer/
-├── main.py                  # Main script
-├── .env                     # Environment variables
-├── data/                    # Input data directory
-│   ├── questions.xlsx       # Customer questions
-│   └── solutions.xlsx       # Expert solutions
-├── metrics/                 # Scoring modules
-│   ├── score_calculator.py  # Implements scoring metrics
-│   └── solution_matcher.py  # Matches responses to solutions
-├── opwebui/                 # OpenWebUI integration
-│   └── api_client.py        # Client for OpenWebUI API
-└── utils/                   # Utility modules
-    ├── data_extractor.py    # Parses Excel input files
-    ├── quality_filter.py    # Assesses response quality
-    └── report_generator.py  # Generates evaluation reports
 ```
 
 ## Configuration
@@ -171,6 +191,12 @@ Adjust wait time between API calls:
 
 ```bash
 python main.py --wait-time 2.0
+```
+
+For Docker, it's the same as the previous example — you just need to add this in front of the command:
+
+```bash
+docker-compose run kb-scorer python main.py --limit 1
 ```
 
 ## Troubleshooting
