@@ -53,15 +53,15 @@ class OpenWebUIClient:
             return ChatResponse.from_dict(raw_data)
         
         except requests.exceptions.HTTPError as e:
-            self.logger.error(f"HTTP error: {e}")
+            logging.error(f"HTTP error: {e}")
         except requests.exceptions.ConnectionError as e:
-            self.logger.error(f"Connection error: {e}")
+            logging.error(f"Connection error: {e}")
         except requests.exceptions.Timeout as e:
-            self.logger.error(f"Timeout error: {e}")
+            logging.error(f"Timeout error: {e}")
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error communicating with the API: {e}")
+            logging.error(f"Error communicating with the API: {e}")
         except ValueError as e:
-            self.logger.error(f"Error parsing JSON response: {e}")
+            logging.error(f"Error parsing JSON response: {e}")
         return None
     
 
