@@ -192,7 +192,8 @@ def main():
                 metrics,
                 bert_threshold=args.bert_threshold,
                 f1_threshold=args.f1_threshold,
-                bleu_threshold=args.bleu_threshold
+                bleu_threshold=args.bleu_threshold,
+                combined_threshold=args.combined_threshold
             )
             if not is_acceptable:
                 logging.warning(f"Question {question.id} response quality below threshold")
@@ -204,7 +205,8 @@ def main():
                     metrics, 
                     bert_threshold=args.bert_threshold,
                     f1_threshold=args.f1_threshold,
-                    bleu_threshold=args.bleu_threshold
+                    bleu_threshold=args.bleu_threshold,
+                    combined_threshold=args.combined_threshold
                 )
                 logging.info(f"Improved prompt: {improved_prompt[:100]}...")
             
@@ -219,7 +221,8 @@ def main():
                                           output_dir=args.report_dir,
                                           bert_threshold=args.bert_threshold,
                                           f1_threshold=args.f1_threshold,
-                                          bleu_threshold=args.bleu_threshold)
+                                          bleu_threshold=args.bleu_threshold,
+                                          combined_threshold=args.combined_threshold)
             logging.info(f"Evaluation report generated: {report_path}")
             
     except Exception as e:
@@ -238,6 +241,7 @@ def parse_args():
     parser.add_argument("--bert-threshold", "--bt", type=float, default=0.5, help="BERT score threshold for quality assessment")
     parser.add_argument("--f1-threshold", "--f1", type=float, default=0.3, help="F1 score threshold for quality assessment")
     parser.add_argument("--bleu-threshold", "--bl", type=float, default=0.1, help="BLEU score threshold for quality assessment")
+    parser.add_argument("--combined-threshold", "--ct", type=float, default=0.4, help="Combined score threshold for quality assessment")
     parser.add_argument("--limit", type=int, default=0, help="Limit the number of questions to process")
     parser.add_argument("--question-id", type=str, help="Process only a specific question ID")
     parser.add_argument("--verbose", "-v", action="store_true", help="Display detailed logs")

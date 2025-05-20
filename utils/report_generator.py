@@ -6,7 +6,8 @@ from utils.quality_filter import assess_response_quality
 def generate_report(questions, solutions, metrics_by_question, output_dir="output",  
                     bert_threshold=0.5, 
                     f1_threshold=0.3, 
-                    bleu_threshold=0.1):
+                    bleu_threshold=0.1,
+                    combined_threshold=0.4):
     """
     Generate a detailed text report of evaluation results.
     
@@ -18,6 +19,7 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
         bert_threshold: Minimum acceptable BERTScore
         f1_threshold: Minimum acceptable traditional F1 score
         bleu_threshold: Minimum acceptable BLEU score
+        combined_threshold: Minimum acceptable combined score
     
     Returns:
         str: Path to the generated report file
@@ -41,11 +43,13 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
         avg_bert = sum(m['metrics']['bert_f1'] for m in metrics_by_question.values()) / len(metrics_by_question)
         avg_f1 = sum(m['metrics']['trad_f1'] for m in metrics_by_question.values()) / len(metrics_by_question)
         avg_bleu = sum(m['metrics']['bleu'] for m in metrics_by_question.values()) / len(metrics_by_question)
-        
+        avg_combined = sum(m['metrics'].get('combined_score', 0) for m in metrics_by_question.values()) / len(metrics_by_question)
+
         f.write(f"Total Questions Evaluated: {len(metrics_by_question)}\n")
         f.write(f"Average BERTScore: {avg_bert:.4f}\n")
         f.write(f"Average F1 Score: {avg_f1:.4f}\n")
         f.write(f"Average BLEU Score: {avg_bleu:.4f}\n\n")
+        f.write(f"Average Combined Score: {avg_combined:.4f}\n\n")
 
         # Detailed results for each question
         f.write("## Detailed Results\n\n")
@@ -80,13 +84,15 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="outpu
             f.write(f"  BERTScore: {metrics['bert_f1']:.4f} (P={metrics['bert_precision']:.4f}, R={metrics['bert_recall']:.4f})\n")
             f.write(f"  F1 Score:  {metrics['trad_f1']:.4f}\n")
             f.write(f"  BLEU:      {metrics['bleu']:.4f}\n\n")
+            f.write(f"  Combined:  {metrics.get('combined_score', 0):.4f}\n\n")
 
             # Quality assessment
             is_acceptable, message = assess_response_quality(
                 metrics,
                 bert_threshold=bert_threshold,
                 f1_threshold=f1_threshold,
-                bleu_threshold=bleu_threshold
+                bleu_threshold=bleu_threshold,
+                combined_threshold=combined_threshold
             )
             f.write(f"### Quality Assessment\n")
             f.write(f"  Status: {'Acceptable' if is_acceptable else 'Needs Improvement'}\n")
