@@ -146,14 +146,23 @@ python main.py [options]
 
 Command line options:
 
-| Options            | Descriptions                              | Default           |
-|--------------------|-------------------------------------------|-------------------|
-|`--limit N`         | Process only the first N questions        | 0 (all questions) |
-|`--question-id ID`  | Process only a specific question by ID	 | None              |
-|`--verbose`, `-v`   | Display detailed logs and results	     | False             |
-| `--report-dir DIR` | Directory to save reports                 | "reports"         |
-| `--wait-time SEC`  | Wait time between API calls in seconds    | 1.0               |
-| `--skip-report`    | Skip report generation                    | False             |
+| Options                      | Descriptions                                         | Default           |
+|------------------------------|------------------------------------------------------|-------------------|
+| `--limit N`, `-l`            | Process only the first N questions                  | 0 (all questions) |
+| `--question-id ID`, `--id`   | Process only a specific question by ID              | None              |
+| `--verbose`, `-v`            | Display detailed logs and results                   | False             |
+| `--report-dir DIR`, `--rd`   | Directory to save reports                           | "reports"         |
+| `--wait-time SEC`, `--wt`    | Wait time between API calls in seconds              | 1.0               |
+| `--skip-report`, `--sr`      | Skip report generation                              | False             |
+| `--export-excel`, `--ee`     | Export evaluation report to Excel                   | False             |
+| `--pre-process`, `--pre`     | Enhance queries before sending to model             | False             |
+| `--post-process`, `--post`   | Generate improved prompts for low-quality responses | False             |
+| `--retry`, `-r`              | Retry with improved prompts when quality is low     | False             |
+| `--bert-threshold T`, `--bt` | BERT score threshold for quality assessment         | 0.5               |
+| `--f1-threshold T`, `--f1`   | F1 score threshold for quality assessment           | 0.3               |
+| `--bleu-threshold T`, `--bl` | BLEU score threshold for quality assessment         | 0.1               |
+| `--combined-threshold T`, `--ct` | Combined score threshold for quality assessment | 0.4               |
+
 
 ### Example
 
