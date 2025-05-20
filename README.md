@@ -17,19 +17,21 @@ The comparison is based on:
 ```yaml
 KB-AnswerScorer/
 ├── main.py                  # Main script
+├── Dockerfile               # Dockerfile
+├── docker-compose.yml       # Docker compose
 ├── .env                     # Environment variables
 ├── data/                    # Input data directory
+│   ├── samples              # Sample input files
 │   ├── questions.xlsx       # Customer questions
 │   └── solutions.xlsx       # Expert solutions
 ├── metrics/                 # Scoring modules
-│   ├── score_calculator.py  # Implements scoring metrics
-│   └── solution_matcher.py  # Matches responses to solutions
+│   └──  metric_evaluator.py # Combined scoring metrics and matcher
 ├── opwebui/                 # OpenWebUI integration
 │   └── api_client.py        # Client for OpenWebUI API
 └── utils/                   # Utility modules
     ├── data_extractor.py    # Parses Excel input files
-    ├── quality_filter.py    # Assesses response quality
-    └── report_generator.py  # Generates evaluation reports
+    ├── query_enhancer.py    # Enhances pre-process and pro-process prompt
+    └── evaluation_utils.py  # Quality Assesment and reporting
 ```
 
 ## Installation (With Docker)
