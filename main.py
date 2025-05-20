@@ -1,7 +1,5 @@
 
-from ast import arg
 import os
-import re
 import time
 import logging
 import argparse
@@ -12,11 +10,11 @@ from dotenv import load_dotenv
 
 from utils.data_extractor import DataExtractor
 from opwebui.api_client import OpenWebUIClient
+from utils.query_enhancer import QueryEnchancer
 from metrics.metrics_evaluator import ScoreCalculator, SolutionMatcher
 from utils.evaluation_utils import (
     generate_report,
     assess_response_quality, 
-    get_improved_prompt,
     export_report_to_excel
 )
 
@@ -134,6 +132,7 @@ def main():
             question_to_process = questions if args.limit <= 0 else questions[:args.limit]
 
         total_questions = len(question_to_process)
+        query_enchancer = QueryEnchancer()
 
         for i, question in enumerate(tqdm(question_to_process, desc="\nProcessing questions", unit="question")):
             logging.info(f"Processing question {i+1}/{total_questions} (ID: {question.id})")
@@ -141,6 +140,13 @@ def main():
             # Get model response for this question
             client = OpenWebUIClient()
             prompt = question.issue
+            
+            # Enhance the query if specified
+            if args.pre_process:
+                enchanced_prompt = query_enchancer.pre_process(prompt)
+                logging.info(f"Pre-request enhanced prompt: {enchanced_prompt[:100]}...")
+                prompt = enchanced_prompt
+
             logging.info(f"Sending prompt to model: {prompt[:50]}...")
             
             response = client.chat_with_model(prompt)
@@ -198,20 +204,23 @@ def main():
                 bleu_threshold=args.bleu_threshold,
                 combined_threshold=args.combined_threshold
             )
-            if not is_acceptable:
+
+            # INCOMPLETE - for future use
+            if not is_acceptable and args.post_process:
+                # Log the feedback and warning
                 logging.warning(f"Question {question.id} response quality below threshold")
-                logging.info(feedback)
+                logging.info(f"{feedback}\n")
                 
                 # Generate improved prompt for future use
-                improved_prompt = get_improved_prompt(
-                    question.issue, 
+                improved_prompt = query_enchancer.post_process(
+                    prompt, 
                     metrics, 
                     bert_threshold=args.bert_threshold,
                     f1_threshold=args.f1_threshold,
                     bleu_threshold=args.bleu_threshold,
                     combined_threshold=args.combined_threshold
                 )
-                logging.info(f"Improved prompt: {improved_prompt[:100]}...")
+                logging.info(f"Post-request improved prompt: {improved_prompt[:100]}...")
             
             if args.verbose:
                 display_results(question, model_response, best_solution, metrics)
@@ -249,13 +258,15 @@ def parse_args():
     parser.add_argument("--f1-threshold", "--f1", type=float, default=0.3, help="F1 score threshold for quality assessment")
     parser.add_argument("--bleu-threshold", "--bl", type=float, default=0.1, help="BLEU score threshold for quality assessment")
     parser.add_argument("--combined-threshold", "--ct", type=float, default=0.4, help="Combined score threshold for quality assessment")
-    parser.add_argument("--limit", type=int, default=0, help="Limit the number of questions to process")
-    parser.add_argument("--question-id", type=str, help="Process only a specific question ID")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Display detailed logs")
-    parser.add_argument("--report-dir", type=str, default="reports", help="Directory to save reports")
-    parser.add_argument("--wait-time", type=float, default=1.0, help="Wait time between API calls in seconds")
-    parser.add_argument("--skip-report", action="store_true", help="Skip report generation")
-    parser.add_argument("--export-excel", "-e", action="store_true", help="Export evaluation report to Excel")
+    parser.add_argument("--limit", "--l", type=int, default=0, help="Limit the number of questions to process")
+    parser.add_argument("--question-id", "--id", type=str, help="Process only a specific question ID")
+    parser.add_argument("--pre-process", "--pre", action="store_true", help="Enable query enhancement before sending to model")
+    parser.add_argument("--post-process", "--post", action="store_true", help="Enable query enhancement after receiving model response")
+    parser.add_argument("--verbose", "--v", action="store_true", help="Display detailed logs")
+    parser.add_argument("--report-dir", "--rd", type=str, default="reports", help="Directory to save reports")
+    parser.add_argument("--wait-time", "--wt", type=float, default=1.0, help="Wait time between API calls in seconds")
+    parser.add_argument("--skip-report", "--sr", action="store_true", help="Skip report generation")
+    parser.add_argument("--export-excel", "--ee", action="store_true", help="Export evaluation report to Excel")
 
     return parser.parse_args()
 

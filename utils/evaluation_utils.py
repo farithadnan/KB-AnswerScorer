@@ -70,64 +70,7 @@ def assess_response_quality(metrics,
         feedback_message += "\nPlease provide more detailed context or a more specific query."
         return False, feedback_message
 
-
-def get_improved_prompt(original_prompt, metrics, 
-                        bert_threshold=0.5, 
-                        f1_threshold=0.3, 
-                        bleu_threshold=0.1,
-                        combined_threshold=0.4):
-    """
-    Generate an improved prompt if the response quality is below thresholds.
-    
-    Args:
-        original_prompt: The original prompt text
-        metrics: Evaluation metrics dictionary
-        thresholds: As in assess_response_quality
-        
-    Returns:
-        str: Either the original prompt (if quality is good) or an enhanced prompt
-    """
-    is_acceptable, feedback = assess_response_quality(
-        metrics, bert_threshold, f1_threshold, bleu_threshold, combined_threshold
-    )
-    
-    if is_acceptable:
-        return original_prompt
-    
-    # Extract specific issues from feedback
-    bert_failed = metrics['bert_f1'] < bert_threshold
-    f1_failed = metrics['trad_f1'] < f1_threshold
-    bleu_failed = metrics['bleu'] < bleu_threshold
-    combined_failed = metrics.get('combined_score', 0) < combined_threshold
-    
-    # Create an enhanced prompt
-    enhanced_prompt = (
-        f"I need more detailed information about this issue. "
-        f"My previous question was:\n\n{original_prompt}\n\n"
-        f"The previous response had these quality issues:\n{feedback}\n\n"
-        f"Please provide a comprehensive answer with:\n"
-    )
-    
-    # Add specific instructions based on which metrics failed
-    if bert_failed:
-        enhanced_prompt += "- Better semantic relevance to my specific question\n"
-    if f1_failed:
-        enhanced_prompt += "- More key technical terms and specific terminology\n"
-    if bleu_failed:
-        enhanced_prompt += "- Clearer structure similar to standard solutions\n"
-    if combined_failed:
-        enhanced_prompt += "- A more comprehensive and detailed response\n"
-    
-    # Add general improvements
-    enhanced_prompt += (
-        "- Step-by-step instructions\n"
-        "- Relevant technical details\n"
-        "- Any specific commands or settings needed\n"
-        "- Common pitfalls to avoid"
-    )
-    return enhanced_prompt
-
-def generate_report(questions, solutions, metrics_by_question, output_dir="reports",
+def generate_report(questions, solutions, metrics_by_question, enhanced_prompt=None, output_dir="reports",
                    bert_threshold=0.5, 
                    f1_threshold=0.3, 
                    bleu_threshold=0.1,
