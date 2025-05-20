@@ -12,10 +12,14 @@ from dotenv import load_dotenv
 
 from utils.data_extractor import DataExtractor
 from opwebui.api_client import OpenWebUIClient
-from utils.report_generator import generate_report
 from metrics.score_calculator import ScoreCalculator
 from metrics.solution_matcher import SolutionMatcher
-from utils.quality_filter import assess_response_quality, get_improved_prompt
+from utils.evaluation_utils import (
+    generate_report,
+    assess_response_quality, 
+    get_improved_prompt,
+    export_report_to_excel
+)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -223,6 +227,10 @@ def main():
                                           f1_threshold=args.f1_threshold,
                                           bleu_threshold=args.bleu_threshold,
                                           combined_threshold=args.combined_threshold)
+            if args.export_excel and report_path:
+                excel_path = export_report_to_excel(report_path)
+                logging.info(f"Evaluation metrics exported to Excel: {excel_path}")
+
             logging.info(f"Evaluation report generated: {report_path}")
             
     except Exception as e:
@@ -248,6 +256,8 @@ def parse_args():
     parser.add_argument("--report-dir", type=str, default="reports", help="Directory to save reports")
     parser.add_argument("--wait-time", type=float, default=1.0, help="Wait time between API calls in seconds")
     parser.add_argument("--skip-report", action="store_true", help="Skip report generation")
+    parser.add_argument("--export-excel", "-e", action="store_true", help="Export evaluation report to Excel")
+
     return parser.parse_args()
 
 if __name__ == "__main__":
