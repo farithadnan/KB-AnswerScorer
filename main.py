@@ -12,8 +12,7 @@ from dotenv import load_dotenv
 
 from utils.data_extractor import DataExtractor
 from opwebui.api_client import OpenWebUIClient
-from metrics.score_calculator import ScoreCalculator
-from metrics.solution_matcher import SolutionMatcher
+from metrics.metrics_evaluator import ScoreCalculator, SolutionMatcher
 from utils.evaluation_utils import (
     generate_report,
     assess_response_quality, 

@@ -112,7 +112,7 @@ class DataExtractor:
             # Parse solutions
             self._parse_solutions(a_handler)
             
-            logging.info(f"Successfully loaded and parsed {len(self.questions)} questions and {len(self.solutions)} solutions")
+            logging.info(f"Successfully loaded and parsed {len(self.questions)} questions and {len(self.solutions)} solutions (knowledge base)")
             
         except Exception as e:
             logging.error(f"Error loading or parsing data: {str(e)}")
@@ -301,45 +301,6 @@ class DataExtractor:
             error_message=error_message
         )
     
-    def export_data_to_txt(self, questions, solutions, filename="display_output.txt"):
-        """
-        Export the formatted questions and solutions data to a text file.
-        This is useful for testing and reviewing large datasets.
-        """
-        try:
-            # Create output directory if it doesn't exist
-            os.makedirs("./output", exist_ok=True)
-            
-            # Open the output file
-            with open(f"./output/{filename}", "w", encoding="utf-8") as f:
-                # Write questions data
-                f.write("\n=== QUESTIONS DATA ===\n")
-                for question in questions:
-                    f.write(f"   Id: {question.id}\n")
-                    f.write(f"   Issues from Tickets: {question.issue}\n")
-                    f.write(f"   Solutions Used: {question.solutions_used}\n")
-                    f.write(f"   AI Solutions Used: {question.ai_solutions_used}\n")
-                    f.write(f"   BERT Score: {question.bert_score}\n")
-                    f.write(f"   F1 Score: {question.f1_score}\n")
-                    f.write(f"   BLEU Score: {question.bleu_score}\n")
-                    f.write(f"   Language Score: {question.language_score}\n")
-                    f.write(f"   Completeness Score: {question.completeness_score}\n\n")
-                
-                # Write solutions data
-                f.write("\n=== SOLUTIONS DATA ===\n")
-                for solution in solutions:
-                    f.write(f"\nId: {solution.id}\n")
-                    f.write(f"{solution.title}:\n")
-                    for i, step in enumerate(solution.steps):
-                        f.write(f"  {i+1}. {step}\n")
-                    if solution.error_message:
-                        f.write(f"  Error: {solution.error_message}\n")
-            
-            logging.info(f"Display data exported to ./output/{filename}")
-            
-        except Exception as e:
-            logging.error(f"Error exporting display data to file: {str(e)}")
-
     def get_questions(self):
         """Return the parsed questions."""
         return self.questions

@@ -57,8 +57,18 @@ def assess_response_quality(metrics,
     if is_acceptable:
         return True, "Response meets quality standards."
     else:
-        feedback_msg = "Response quality issues: " + "; ".join(feedback)
-        return False, feedback_msg
+        feedback_message = "Response quality issues detected:\n- " + "\n- ".join(feedback)
+        feedback_message += "\n\nSuggested actions:\n"
+        
+        if bert_score < bert_threshold:
+            feedback_message += "- Improve semantic relevance to the question\n"
+        if f1_score < f1_threshold:
+            feedback_message += "- Include more key terms from the reference solution\n"
+        if bleu_score < bleu_threshold:
+            feedback_message += "- Structure the response more similarly to reference solutions\n"
+            
+        feedback_message += "\nPlease provide more detailed context or a more specific query."
+        return False, feedback_message
 
 
 def get_improved_prompt(original_prompt, metrics, 
@@ -211,7 +221,7 @@ def generate_report(questions, solutions, metrics_by_question, output_dir="repor
                 combined_threshold=combined_threshold
             )
             
-            f.write(f"  {'PASS' if is_acceptable else 'FAIL'}: {feedback}\n\n")
+            f.write(f"  Status: {'PASS' if is_acceptable else 'FAIL'}\n\n{feedback}\n\n")
     
     return report_path
 
